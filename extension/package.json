@@ -3,7 +3,7 @@
   "displayName": "QueryLens for Java",
   "description": "See the SQL queries your Spring Boot endpoints really execute.",
   "version": "0.1.0",
-  "publisher": "querylens",
+  "publisher": "suedasen",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "resources/querylens.png",
   "repository": {
