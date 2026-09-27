@@ -2,9 +2,10 @@
   "name": "querylens-java",
   "displayName": "QueryLens for Java",
   "description": "See the SQL queries your Spring Boot endpoints really execute.",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "publisher": "querylens",
-  "license": "Apache-2.0",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "resources/querylens.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/SuedaSen/querylens-java.git"
@@ -16,6 +17,19 @@
   "engines": {
     "vscode": "^1.95.0"
   },
+  "galleryBanner": {
+    "color": "#4B32C3",
+    "theme": "dark"
+  },
+  "keywords": [
+    "java",
+    "spring boot",
+    "hibernate",
+    "jdbc",
+    "sql",
+    "n+1",
+    "performance"
+  ],
   "categories": [
     "Debuggers",
     "Visualization",
