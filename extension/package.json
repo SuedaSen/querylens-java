@@ -1,0 +1,114 @@
+{
+  "name": "querylens-java",
+  "displayName": "QueryLens for Java",
+  "description": "See the SQL queries your Spring Boot endpoints really execute.",
+  "version": "0.0.2",
+  "publisher": "querylens",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:queryLens.requests",
+    "onCommand:queryLens.loadDemo",
+    "onCommand:queryLens.clear",
+    "onCommand:queryLens.runSpringBoot",
+    "onCommand:queryLens.openSource"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "queryLens.loadDemo",
+        "title": "QueryLens: Load Demo Trace",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "queryLens.clear",
+        "title": "QueryLens: Clear Traces",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "queryLens.runSpringBoot",
+        "title": "QueryLens: Run Spring Boot with Agent",
+        "icon": "$(play)"
+      },
+      {
+        "command": "queryLens.openSource",
+        "title": "QueryLens: Open Query Source"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "queryLens",
+          "title": "QueryLens",
+          "icon": "resources/querylens.svg"
+        }
+      ]
+    },
+    "views": {
+      "queryLens": [
+        {
+          "id": "queryLens.requests",
+          "name": "Request Traces"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "QueryLens",
+      "properties": {
+        "queryLens.collectorPort": {
+          "type": "number",
+          "default": 4318,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Local port used to receive traces from the QueryLens Java agent."
+        },
+        "queryLens.nPlusOneThreshold": {
+          "type": "number",
+          "default": 3,
+          "minimum": 2,
+          "maximum": 100,
+          "description": "Number of repeated queries required before QueryLens reports a possible N+1 issue."
+        }
+      }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "queryLens.loadDemo",
+          "when": "view == queryLens.requests",
+          "group": "navigation"
+        },
+        {
+          "command": "queryLens.clear",
+          "when": "view == queryLens.requests",
+          "group": "navigation"
+        },
+        {
+          "command": "queryLens.runSpringBoot",
+          "when": "view == queryLens.requests",
+          "group": "navigation@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc --noEmit -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - name: Test and package agent
+        run: mvn --file agent/pom.xml test package
+      - name: Install extension dependencies
+        run: npm ci
+        working-directory: extension
+      - name: Bundle agent
+        run: cp agent/target/querylens-agent-0.0.1-SNAPSHOT-all.jar extension/resources/querylens-agent.jar
+      - name: Check and package extension
+        run: npm run check && npm run compile && npm run package -- --allow-missing-repository
+        working-directory: extension
+      - uses: actions/upload-artifact@v4
+        with:
+          name: querylens-java-vsix
+          path: extension/*.vsix

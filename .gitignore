@@ -1,0 +1,10 @@
+.DS_Store
+.m2/
+.vscode-test/
+node_modules/
+out/
+target/
+*.vsix
+*.log
+AGENTS.md
+extension/resources/querylens-agent.jar
