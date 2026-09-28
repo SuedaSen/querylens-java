@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Added a session-wide Database Health dashboard with endpoint comparisons.
+- Added a deterministic 0–100 health score for each request and session.
+- Added prioritized N+1, slow-query, and high-query-volume recommendations.
+- Added Markdown health report export for sharing findings with a team.
+- Kept all analysis local and compatible with the existing Java agent.
+
 ## 0.1.2
 
 - Added an actionable empty state with run, preview, and tutorial links.

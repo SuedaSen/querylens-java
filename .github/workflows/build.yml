@@ -26,8 +26,8 @@ jobs:
         working-directory: extension
       - name: Bundle agent
         run: cp agent/target/querylens-agent-0.0.1-SNAPSHOT-all.jar extension/resources/querylens-agent.jar
-      - name: Check and package extension
-        run: npm run check && npm run compile && npm run package -- --allow-missing-repository
+      - name: Check, test, and package extension
+        run: npm run check && npm test && npm run package -- --allow-missing-repository
         working-directory: extension
       - uses: actions/upload-artifact@v4
         with:

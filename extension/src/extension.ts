@@ -3,6 +3,7 @@ import { createServer, IncomingMessage, Server, ServerResponse } from "node:http
 import * as path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { demoTrace, QueryTrace, RequestTrace } from "./trace";
+import { analyzeTrace, compactSql, queryExecutions } from "./analysis";
 
 class TraceItem extends vscode.TreeItem {
   constructor(
@@ -41,6 +42,10 @@ class TraceProvider implements vscode.TreeDataProvider<TraceItem> {
   clear(): void {
     this.traces = [];
     this.changed.fire(undefined);
+  }
+
+  getTraces(): readonly RequestTrace[] {
+    return this.traces;
   }
 
   private requestItem(trace: RequestTrace): TraceItem {
@@ -101,7 +106,7 @@ class TraceProvider implements vscode.TreeDataProvider<TraceItem> {
   }
 
   private queryCount(trace: RequestTrace): number {
-    return trace.queries.reduce((sum, query) => sum + (query.repetitions ?? 1), 0);
+    return trace.queries.reduce((sum, query) => sum + queryExecutions(query), 0);
   }
 }
 
@@ -109,6 +114,10 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;"
   })[character] ?? character);
+}
+
+function slowQueryThreshold(): number {
+  return vscode.workspace.getConfiguration("queryLens").get<number>("slowQueryThresholdMs", 100);
 }
 
 function showTraceDetails(trace: RequestTrace | undefined): void {
@@ -124,7 +133,8 @@ function showTraceDetails(trace: RequestTrace | undefined): void {
     vscode.ViewColumn.Active,
     { enableScripts: false }
   );
-  const queryCount = trace.queries.reduce((sum, query) => sum + (query.repetitions ?? 1), 0);
+  const analysis = analyzeTrace(trace, slowQueryThreshold());
+  const queryCount = analysis.totalQueries;
   const repeated = trace.queries.filter((query) => (query.repetitions ?? 1) > 1);
   const rows = trace.queries.map((query) => {
     const repetitions = query.repetitions ?? 1;
@@ -140,7 +150,7 @@ function showTraceDetails(trace: RequestTrace | undefined): void {
     </article>`;
   }).join("");
   const captured = new Date(trace.timestamp).toLocaleString();
-  panel.webview.html = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  panel.webview.html = `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root{color-scheme:light dark}body{padding:28px;max-width:1100px;margin:auto;font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background)}
     h1{font-size:26px;margin:0}.eyebrow{color:var(--vscode-descriptionForeground);margin:6px 0 24px}.cards{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:12px;margin-bottom:24px}
@@ -150,11 +160,72 @@ function showTraceDetails(trace: RequestTrace | undefined): void {
     .alert{padding:13px 15px;border-radius:8px;margin-bottom:20px;background:var(--vscode-inputValidation-warningBackground);border:1px solid var(--vscode-inputValidation-warningBorder)}
     @media(max-width:650px){.cards{grid-template-columns:1fr}}
   </style></head><body>
-    <h1>${escapeHtml(trace.method)} ${escapeHtml(trace.path)}</h1><p class="eyebrow">Captured ${escapeHtml(captured)}</p>
-    <section class="cards"><div class="card"><div class="label">Request duration</div><div class="metric">${trace.durationMs} ms</div></div><div class="card"><div class="label">SQL queries</div><div class="metric">${queryCount}</div></div><div class="card"><div class="label">N+1 patterns</div><div class="metric">${repeated.length}</div></div></section>
+    <h1>${escapeHtml(trace.method)} ${escapeHtml(trace.path)}</h1><p class="eyebrow">Captured ${escapeHtml(captured)} · Database health: ${analysis.score}/100 (${analysis.grade})</p>
+    <section class="cards"><div class="card"><div class="label">Health score</div><div class="metric">${analysis.score}</div></div><div class="card"><div class="label">Request duration</div><div class="metric">${trace.durationMs} ms</div></div><div class="card"><div class="label">SQL executions</div><div class="metric">${queryCount}</div></div></section>
     ${repeated.length > 0 ? `<div class="alert">QueryLens found ${repeated.length} repeated query pattern${repeated.length === 1 ? "" : "s"}. Inspect the highlighted statements below.</div>` : ""}
     <h2>Query timeline</h2>${rows || "<p>No SQL query was captured for this request.</p>"}
   </body></html>`;
+}
+
+function showSessionDashboard(traces: readonly RequestTrace[]): void {
+  if (traces.length === 0) {
+    void vscode.window.showInformationMessage("No requests captured yet. Run your app or preview the demo trace first.");
+    return;
+  }
+  const analyses = traces.map((trace) => ({ trace, analysis: analyzeTrace(trace, slowQueryThreshold()) }));
+  const averageScore = Math.round(analyses.reduce((sum, item) => sum + item.analysis.score, 0) / analyses.length);
+  const totalQueries = analyses.reduce((sum, item) => sum + item.analysis.totalQueries, 0);
+  const issueCount = analyses.reduce((sum, item) => sum + item.analysis.findings.length, 0);
+  const endpoints = new Map<string, { calls: number; duration: number; queries: number; score: number; issues: number }>();
+  for (const { trace, analysis } of analyses) {
+    const key = `${trace.method} ${trace.path}`;
+    const current = endpoints.get(key) ?? { calls: 0, duration: 0, queries: 0, score: 0, issues: 0 };
+    current.calls += 1;
+    current.duration += trace.durationMs;
+    current.queries += analysis.totalQueries;
+    current.score += analysis.score;
+    current.issues += analysis.findings.length;
+    endpoints.set(key, current);
+  }
+  const endpointRows = [...endpoints.entries()].map(([endpoint, stats]) => ({ endpoint, ...stats }))
+    .sort((a, b) => (a.score / a.calls) - (b.score / b.calls))
+    .map((item) => `<tr><td><strong>${escapeHtml(item.endpoint)}</strong></td><td>${item.calls}</td><td>${Math.round(item.duration / item.calls)} ms</td><td>${Math.round(item.queries / item.calls)}</td><td><span class="score ${Math.round(item.score / item.calls) < 75 ? "risk" : ""}">${Math.round(item.score / item.calls)}</span></td><td>${item.issues}</td></tr>`).join("");
+  const findings = analyses.flatMap(({ trace, analysis }) => analysis.findings.map((finding) => ({ trace, finding })))
+    .slice(0, 8).map(({ trace, finding }) => `<article class="finding ${finding.severity}"><div><span class="pill">${finding.severity}</span><strong>${escapeHtml(finding.title)}</strong><p>${escapeHtml(trace.method)} ${escapeHtml(trace.path)} · ${escapeHtml(finding.detail)}</p></div><div class="fix"><b>Recommended fix</b><br>${escapeHtml(finding.recommendation)}</div></article>`).join("");
+  const panel = vscode.window.createWebviewPanel("queryLens.sessionDashboard", "QueryLens · Database Health", vscode.ViewColumn.Active, { enableScripts: false });
+  panel.webview.html = `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  :root{color-scheme:light dark}*{box-sizing:border-box}body{padding:32px;max-width:1200px;margin:auto;font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background)}
+  header{padding:26px;border-radius:16px;background:linear-gradient(135deg,#5636d9,#7b61ff);color:white;margin-bottom:20px}h1{margin:0 0 8px;font-size:30px}header p{margin:0;opacity:.85}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.card{padding:17px;border:1px solid var(--vscode-widget-border);border-radius:12px;background:var(--vscode-sideBar-background)}.metric{font-size:28px;font-weight:750;margin-top:5px}.label,p{color:var(--vscode-descriptionForeground)}
+  section{margin-top:28px}table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--vscode-widget-border);border-radius:12px;overflow:hidden}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--vscode-widget-border)}th{color:var(--vscode-descriptionForeground);font-size:12px;text-transform:uppercase}tr:last-child td{border:0}.score{font-weight:800;color:var(--vscode-charts-green)}.score.risk{color:var(--vscode-charts-yellow)}
+  .finding{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;padding:16px;margin:10px 0;border:1px solid var(--vscode-widget-border);border-left:4px solid var(--vscode-charts-yellow);border-radius:10px;background:var(--vscode-sideBar-background)}.finding.critical{border-left-color:var(--vscode-errorForeground)}.finding p{margin:7px 0 0}.pill{font-size:10px;text-transform:uppercase;padding:3px 7px;border-radius:20px;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);margin-right:8px}.fix{line-height:1.45}@media(max-width:760px){.cards{grid-template-columns:1fr 1fr}.finding{grid-template-columns:1fr}}
+  </style></head><body><header><h1>Database Health</h1><p>A prioritized view of the database work behind this session.</p></header>
+  <div class="cards"><div class="card"><div class="label">Health score</div><div class="metric">${averageScore}/100</div></div><div class="card"><div class="label">Requests</div><div class="metric">${traces.length}</div></div><div class="card"><div class="label">SQL executions</div><div class="metric">${totalQueries}</div></div><div class="card"><div class="label">Findings</div><div class="metric">${issueCount}</div></div></div>
+  <section><h2>Endpoint comparison</h2><table><thead><tr><th>Endpoint</th><th>Calls</th><th>Avg duration</th><th>Avg queries</th><th>Score</th><th>Issues</th></tr></thead><tbody>${endpointRows}</tbody></table></section>
+  <section><h2>Prioritized recommendations</h2>${findings || "<p>No database risks detected in this session. Nice work.</p>"}</section></body></html>`;
+}
+
+async function exportReport(traces: readonly RequestTrace[]): Promise<void> {
+  if (traces.length === 0) {
+    void vscode.window.showInformationMessage("There are no traces to export yet.");
+    return;
+  }
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri: vscode.Uri.file(path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? "", "querylens-report.md")),
+    filters: { Markdown: ["md"] }, saveLabel: "Export QueryLens report"
+  });
+  if (!uri) return;
+  const lines = ["# QueryLens Database Health Report", "", `Generated: ${new Date().toLocaleString()}`, ""];
+  for (const trace of traces) {
+    const analysis = analyzeTrace(trace, slowQueryThreshold());
+    lines.push(`## ${trace.method} ${trace.path}`, "", `- Health score: **${analysis.score}/100 (${analysis.grade})**`, `- Duration: ${trace.durationMs} ms`, `- SQL executions: ${analysis.totalQueries}`, "");
+    for (const finding of analysis.findings) {
+      lines.push(`### ${finding.title}`, "", `SQL: \`${compactSql(finding.detail, 180).replace(/`/g, "'")}\``, "", `Recommendation: ${finding.recommendation}`, "");
+    }
+  }
+  await vscode.workspace.fs.writeFile(uri, Buffer.from(lines.join("\n"), "utf8"));
+  void vscode.window.showInformationMessage("QueryLens report exported.", "Open report").then((choice) => {
+    if (choice === "Open report") void vscode.window.showTextDocument(uri);
+  });
 }
 
 async function openSource(source: { file: string; line: number }): Promise<void> {
@@ -340,6 +411,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("queryLens.openSource", openSource),
     vscode.commands.registerCommand("queryLens.runSpringBoot", () => runSpringBoot(context)),
     vscode.commands.registerCommand("queryLens.showTrace", showTraceDetails),
+    vscode.commands.registerCommand("queryLens.openDashboard", () => showSessionDashboard(provider.getTraces())),
+    vscode.commands.registerCommand("queryLens.exportReport", () => exportReport(provider.getTraces())),
     vscode.commands.registerCommand("queryLens.openTutorial", () =>
       vscode.commands.executeCommand(
         "workbench.action.openWalkthrough",

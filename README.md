@@ -11,6 +11,9 @@ detection without sending application data to an external service.
 - Groups SQL queries by HTTP request
 - Detects repeated queries and possible N+1 problems
 - Shows request duration and total query count
+- Scores database health across the full debugging session
+- Compares endpoints and recommends concrete fixes for N+1 and slow queries
+- Exports a Markdown report for code reviews
 - Opens the Java source location that triggered a query
 - Starts Maven and Gradle Spring Boot projects with one command
 - Runs locally without uploading source code or SQL traces

@@ -10,6 +10,9 @@ VS Code.
 - Groups Hibernate and JDBC queries by HTTP request
 - Detects possible N+1 query patterns
 - Displays request duration and query counts
+- Scores database health across the entire debugging session
+- Compares endpoints and prioritizes N+1, slow-query, and query-volume risks
+- Exports a shareable Markdown health report
 - Opens the Java source location behind a query
 - Starts Maven and Gradle Spring Boot projects with the bundled Java agent
 - Keeps trace data entirely on your machine
@@ -68,10 +71,19 @@ The request appears automatically in the QueryLens sidebar:
 Run **QueryLens: Open Getting Started** at any time to reopen the interactive
 walkthrough inside VS Code.
 
+## Database Health dashboard
+
+After capturing one or more requests, select the graph button in the QueryLens
+view or run **QueryLens: Open Database Health Dashboard**. The dashboard ranks
+endpoints by a deterministic 0–100 score and turns findings into practical
+recommendations. Use **QueryLens: Export Health Report** to save the same
+analysis as Markdown for a pull request or team review.
+
 ## Settings
 
 - `queryLens.collectorPort` — local trace collector port; default `4318`
 - `queryLens.nPlusOneThreshold` — repeated-query warning threshold; default `3`
+- `queryLens.slowQueryThresholdMs` — slow-query warning threshold; default `100`
 
 ## Current compatibility
 

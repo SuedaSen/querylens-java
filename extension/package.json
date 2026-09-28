@@ -2,7 +2,7 @@
   "name": "querylens-java",
   "displayName": "QueryLens for Java",
   "description": "See the SQL queries your Spring Boot endpoints really execute.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "suedasen",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "resources/querylens.png",
@@ -43,6 +43,8 @@
     "onCommand:queryLens.openSource",
     "onCommand:queryLens.openTutorial",
     "onCommand:queryLens.showTrace"
+    ,"onCommand:queryLens.openDashboard"
+    ,"onCommand:queryLens.exportReport"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -74,6 +76,16 @@
       {
         "command": "queryLens.showTrace",
         "title": "QueryLens: Show Request Details"
+      },
+      {
+        "command": "queryLens.openDashboard",
+        "title": "QueryLens: Open Database Health Dashboard",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "queryLens.exportReport",
+        "title": "QueryLens: Export Health Report",
+        "icon": "$(export)"
       }
     ],
     "viewsContainers": {
@@ -147,6 +159,13 @@
           "minimum": 2,
           "maximum": 100,
           "description": "Number of repeated queries required before QueryLens reports a possible N+1 issue."
+        },
+        "queryLens.slowQueryThresholdMs": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 60000,
+          "description": "Query duration in milliseconds that QueryLens treats as slow in health analysis."
         }
       }
     },
@@ -171,12 +190,23 @@
           "command": "queryLens.openTutorial",
           "when": "view == queryLens.requests",
           "group": "navigation@2"
+        },
+        {
+          "command": "queryLens.openDashboard",
+          "when": "view == queryLens.requests",
+          "group": "navigation@3"
+        },
+        {
+          "command": "queryLens.exportReport",
+          "when": "view == queryLens.requests",
+          "group": "navigation@4"
         }
       ]
     }
   },
   "scripts": {
     "compile": "tsc -p ./",
+    "test": "npm run compile && node --test tests/*.test.js",
     "watch": "tsc -watch -p ./",
     "check": "tsc --noEmit -p ./",
     "package": "vsce package"
