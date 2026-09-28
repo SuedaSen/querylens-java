@@ -60,7 +60,9 @@ public final class TraceCollector {
     private static StackTraceElement findSource() {
         for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
             String name = frame.getClassName();
-            if (!name.startsWith("dev.querylens.") && !name.startsWith("java.")
+            if (frame.getLineNumber() > 0 && !name.contains("$Proxy")
+                    && !name.contains("$HibernateProxy") && !name.contains("$$")
+                    && !name.startsWith("dev.querylens.agent.") && !name.startsWith("java.")
                     && !name.startsWith("jdk.") && !name.startsWith("org.hibernate.")
                     && !name.startsWith("com.zaxxer.hikari.")
                     && !name.startsWith("org.h2.") && !name.startsWith("org.springframework.")

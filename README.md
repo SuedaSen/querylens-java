@@ -38,6 +38,19 @@ QueryLens view or run **QueryLens: Run Spring Boot with Agent**. The extension
 starts the project with its bundled Java agent. Click a captured SQL row to
 jump to the Java source location that triggered it.
 
+## Quick tutorial
+
+1. Open a Spring Boot 3 project.
+2. Open QueryLens from the VS Code activity bar.
+3. Select **Run Spring Boot with Agent**.
+4. Send a request to a Spring MVC endpoint.
+5. Select the captured request to open its visual dashboard.
+6. Expand the request to inspect SQL and select a query to jump to Java source.
+
+The status bar shows when the local collector is ready. The built-in
+**QueryLens: Open Getting Started** walkthrough explains the same workflow
+inside VS Code.
+
 ## Build the Java agent
 
 ```bash

@@ -25,6 +25,49 @@ VS Code.
 Click a query to jump to the Java source location. Repeated queries that meet
 the configured threshold appear with an **N+1** warning.
 
+## Tutorial
+
+### 1. Open a supported project
+
+Open the folder that contains your Spring Boot `pom.xml`, `build.gradle`, or
+`build.gradle.kts`. QueryLens searches multi-root workspaces and nested modules
+for Spring Boot projects.
+
+### 2. Start the application
+
+Open the QueryLens sidebar and select the play button, or run:
+
+```text
+QueryLens: Run Spring Boot with Agent
+```
+
+If more than one Spring Boot module is present, select the module you want to
+run. QueryLens starts Maven or Gradle in a terminal and attaches its bundled
+Java agent. The status bar displays **QueryLens ready** when the local collector
+is listening.
+
+### 3. Send an HTTP request
+
+Call any Spring MVC endpoint using a browser, curl, Postman, Bruno, or another
+REST client. For example:
+
+```bash
+curl http://localhost:8080/api/purchases
+```
+
+### 4. Read the results
+
+The request appears automatically in the QueryLens sidebar:
+
+- Select the request to open the visual request dashboard.
+- Expand the request to inspect individual SQL statements.
+- A yellow **N+1** item means the same normalized query crossed the configured
+  repetition threshold.
+- Select a SQL item to open the Java source line associated with the query.
+
+Run **QueryLens: Open Getting Started** at any time to reopen the interactive
+walkthrough inside VS Code.
+
 ## Settings
 
 - `queryLens.collectorPort` — local trace collector port; default `4318`

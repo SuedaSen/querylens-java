@@ -2,7 +2,7 @@
   "name": "querylens-java",
   "displayName": "QueryLens for Java",
   "description": "See the SQL queries your Spring Boot endpoints really execute.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "suedasen",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "resources/querylens.png",
@@ -40,7 +40,9 @@
     "onCommand:queryLens.loadDemo",
     "onCommand:queryLens.clear",
     "onCommand:queryLens.runSpringBoot",
-    "onCommand:queryLens.openSource"
+    "onCommand:queryLens.openSource",
+    "onCommand:queryLens.openTutorial",
+    "onCommand:queryLens.showTrace"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -63,6 +65,15 @@
       {
         "command": "queryLens.openSource",
         "title": "QueryLens: Open Query Source"
+      },
+      {
+        "command": "queryLens.openTutorial",
+        "title": "QueryLens: Open Getting Started",
+        "icon": "$(book)"
+      },
+      {
+        "command": "queryLens.showTrace",
+        "title": "QueryLens: Show Request Details"
       }
     ],
     "viewsContainers": {
@@ -82,6 +93,38 @@
         }
       ]
     },
+    "walkthroughs": [
+      {
+        "id": "queryLens.gettingStarted",
+        "title": "Get started with QueryLens",
+        "description": "Run a Spring Boot application and find its hidden query costs.",
+        "steps": [
+          {
+            "id": "queryLens.openProject",
+            "title": "Open a Spring Boot project",
+            "description": "Open the folder containing a Spring Boot `pom.xml` or `build.gradle`. QueryLens supports Spring Boot 3, Spring MVC, Hibernate, and JDBC."
+          },
+          {
+            "id": "queryLens.startApplication",
+            "title": "Start with the QueryLens agent",
+            "description": "Run [QueryLens: Run Spring Boot with Agent](command:queryLens.runSpringBoot). QueryLens starts the project and connects its bundled local Java agent.",
+            "completionEvents": [
+              "onCommand:queryLens.runSpringBoot"
+            ]
+          },
+          {
+            "id": "queryLens.sendRequest",
+            "title": "Call an application endpoint",
+            "description": "Use your browser, REST client, or terminal to send an HTTP request to the running application. The request will appear automatically in the QueryLens sidebar."
+          },
+          {
+            "id": "queryLens.inspectResults",
+            "title": "Inspect the trace",
+            "description": "Select a request to open its dashboard. Expand it to see SQL statements and N+1 warnings. Select a query to jump to its Java source line."
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "QueryLens",
       "properties": {
@@ -117,6 +160,11 @@
           "command": "queryLens.runSpringBoot",
           "when": "view == queryLens.requests",
           "group": "navigation@1"
+        },
+        {
+          "command": "queryLens.openTutorial",
+          "when": "view == queryLens.requests",
+          "group": "navigation@2"
         }
       ]
     }

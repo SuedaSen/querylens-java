@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Added a visual request dashboard with duration, query count, and N+1 summary cards.
+- Added a local collector status indicator to the VS Code status bar.
+- Added an interactive Getting Started walkthrough.
+- Improved request severity icons and N+1 visibility in the trace tree.
+- Expanded Marketplace documentation with a step-by-step tutorial.
+
 ## 0.1.0
 
 - Capture JDBC and Hibernate queries per Spring MVC request.
