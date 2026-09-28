@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Improved the Database Health hero text contrast in light themes.
+
 ## 0.2.0
 
 - Added a session-wide Database Health dashboard with endpoint comparisons.
