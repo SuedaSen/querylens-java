@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- Added an actionable empty state with run, preview, and tutorial links.
+- Opening the demo trace now immediately displays the visual dashboard.
+- Prevented the request-details command from failing when no request is selected.
+- Avoided inheriting stale `JAVA_TOOL_OPTIONS` when Maven starts the application.
+
 ## 0.1.1
 
 - Added a visual request dashboard with duration, query count, and N+1 summary cards.

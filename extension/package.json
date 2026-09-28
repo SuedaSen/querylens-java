@@ -2,7 +2,7 @@
   "name": "querylens-java",
   "displayName": "QueryLens for Java",
   "description": "See the SQL queries your Spring Boot endpoints really execute.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "suedasen",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "resources/querylens.png",
@@ -93,6 +93,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "queryLens.requests",
+        "contents": "No requests captured yet.\n\n[Run Spring Boot with QueryLens](command:queryLens.runSpringBoot)\n\nCall one of your endpoints, then select the request to open its visual dashboard.\n\n[Preview the dashboard](command:queryLens.loadDemo)\n\n[Open the tutorial](command:queryLens.openTutorial)"
+      }
+    ],
     "walkthroughs": [
       {
         "id": "queryLens.gettingStarted",

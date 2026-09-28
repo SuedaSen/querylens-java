@@ -28,12 +28,7 @@ class TraceProvider implements vscode.TreeDataProvider<TraceItem> {
       return element.children;
     }
     if (this.traces.length === 0) {
-      const empty = new TraceItem(
-        "No traces yet — run Load Demo Trace",
-        vscode.TreeItemCollapsibleState.None
-      );
-      empty.iconPath = new vscode.ThemeIcon("info");
-      return [empty];
+      return [];
     }
     return this.traces.map((trace) => this.requestItem(trace));
   }
@@ -116,7 +111,13 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-function showTraceDetails(trace: RequestTrace): void {
+function showTraceDetails(trace: RequestTrace | undefined): void {
+  if (!trace || typeof trace.method !== "string" || !Array.isArray(trace.queries)) {
+    void vscode.window.showInformationMessage(
+      "No request is selected yet. Run your Spring Boot app and call an endpoint, or load the demo trace."
+    );
+    return;
+  }
   const panel = vscode.window.createWebviewPanel(
     "queryLens.traceDetails",
     `${trace.method} ${trace.path}`,
@@ -240,7 +241,10 @@ async function runSpringBoot(context: vscode.ExtensionContext): Promise<void> {
   const terminal = vscode.window.createTerminal({
     name: `QueryLens · ${path.basename(project.root)}`,
     cwd: project.root,
-    env: project.kind === "gradle" ? { JAVA_TOOL_OPTIONS: agentOption } : undefined
+    // Avoid accidentally loading an older QueryLens agent inherited by VS Code.
+    env: project.kind === "gradle"
+      ? { JAVA_TOOL_OPTIONS: agentOption }
+      : { JAVA_TOOL_OPTIONS: null }
   });
   terminal.show();
   terminal.sendText(command);
@@ -328,8 +332,9 @@ export function activate(context: vscode.ExtensionContext): void {
     status,
     vscode.window.registerTreeDataProvider("queryLens.requests", provider),
     vscode.commands.registerCommand("queryLens.loadDemo", () => {
-      provider.add(demoTrace());
-      void vscode.window.showInformationMessage("QueryLens loaded a demo request trace.");
+      const trace = demoTrace();
+      provider.add(trace);
+      showTraceDetails(trace);
     }),
     vscode.commands.registerCommand("queryLens.clear", () => provider.clear()),
     vscode.commands.registerCommand("queryLens.openSource", openSource),
